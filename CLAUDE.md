@@ -20,7 +20,7 @@ See [`eshop-tech-stack.md`](./eshop-tech-stack.md) for the full stack reference.
 
 ```
 src/
-  Api/          # Minimal API endpoint groups, mapped in Program.cs
+  Api/          # MVC controllers, mapped via MapControllers() in Program.cs
   Domain/       # EF Core entities, value objects, domain logic
   Infrastructure/
     Data/       # DbContext, IEntityTypeConfiguration<T> configs, migrations
@@ -43,7 +43,7 @@ src/
 
 ### Key architectural decisions
 
-- **Minimal API** over MVC controllers — endpoints are registered as groups in `*Endpoints.cs` files.
+- **MVC Controllers** — endpoints live in `*Controller.cs` files under `src/Api/Controllers/`, registered via `MapControllers()` in `Program.cs`.
 - **EF Core configuration** lives in `IEntityTypeConfiguration<T>` classes, not data annotations.
 - **FluentValidation** validators are registered via DI and called explicitly in endpoint handlers or via a filter.
 - **Zustand** is used only for client-owned state (cart contents, logged-in session); all server state goes through TanStack Query.
@@ -53,11 +53,35 @@ src/
 
 ## Commands
 
-> Commands will be added here once the project is scaffolded. Expect:
->
-> - `docker compose up` — start Postgres locally
-> - `dotnet watch run` — backend dev server with hot reload
-> - `dotnet ef migrations add <Name>` — add an EF Core migration
-> - `npm run dev` — frontend dev server (Vite)
-> - `npm run lint` / `npm run typecheck` — frontend quality checks
-> - `dotnet test` — backend unit/integration tests
+### Backend
+
+```bash
+# Start Postgres locally (from repo root)
+docker compose -f Psql-db/docker-compose.yml up -d
+
+# Backend dev server with hot reload
+dotnet watch run --project backend/src/Api
+
+# Add an EF Core migration
+dotnet ef migrations add <Name> --project backend/src/Api
+
+# Apply pending migrations
+dotnet ef database update --project backend/src/Api
+
+# Run all backend tests
+dotnet test backend/AoraCare.sln
+```
+
+> EF tool is pinned in `backend/.config/dotnet-tools.json`.
+> Run `dotnet tool restore` inside `backend/` after a fresh clone.
+
+### Frontend
+
+```bash
+# Dev server (run from frontend/)
+npm run dev
+
+# Type-check + lint
+npm run typecheck
+npm run lint
+```

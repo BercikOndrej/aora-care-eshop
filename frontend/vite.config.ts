@@ -12,6 +12,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      // Forward /api/* to the ASP.NET Core dev server — no CORS needed in dev.
+      '/api': 'http://localhost:5238',
+    },
+  },
   test: {
     // Vitest runs inside Vite — no separate jest.config needed
     globals: true,

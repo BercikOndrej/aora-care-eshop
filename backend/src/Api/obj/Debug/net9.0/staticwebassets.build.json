@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "TQbgZLB58kmt9MmW7jTqNZcgVdrrDlNBBWohIuFWweY=",
+  "Source": "AoraCare.Api",
+  "BasePath": "_content/AoraCare.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}
