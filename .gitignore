@@ -1,0 +1,13 @@
+# .NET build output
+bin/
+obj/
+*.user
+
+# Environment
+.env
+.env.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
