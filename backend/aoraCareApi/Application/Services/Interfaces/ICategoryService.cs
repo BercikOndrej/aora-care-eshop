@@ -1,6 +1,5 @@
 using aoraCareApi.Application.Dtos;
-using aoraCareApi.Domain;
-using Microsoft.AspNetCore.Mvc;
+using ErrorOr;
 
 namespace aoraCareApi.Application.Services.Interfaces;
 
@@ -29,9 +28,10 @@ public interface ICategoryService
     ///     The identifier of the category.
     /// </param>
     /// <returns>
-    ///     Returns category if exists. If category does not exist, a null value is returned.
+    ///     Returns an <see cref="ErrorOr{TValue}"/> containing the <see cref="CategoryResponseDto"/> if it exists,
+    ///     or an <see cref="Error"/> of type <see cref="ErrorType.NotFound"/> if no category with the given <paramref name="id"/> exists.
     /// </returns>
-    Task<CategoryResponseDto?> GetAsync(Guid id);
+    Task<ErrorOr<CategoryResponseDto>> GetAsync(Guid id);
 
     /// <summary>
     ///     Create new Category.
@@ -41,9 +41,10 @@ public interface ICategoryService
     ///     <see cref="CategoryAddDto"/> to create category.
     /// </param>
     /// <returns>
-    ///     Returns newly created category.
+    ///     Returns an <see cref="ErrorOr{TValue}"/> containing the newly created <see cref="CategoryResponseDto"/>,
+    ///     or an <see cref="Error"/> of type <see cref="ErrorType.Conflict"/> if the slug derived from the name is already taken.
     /// </returns>
-    Task<CategoryResponseDto> AddAsync(CategoryAddDto category);
+    Task<ErrorOr<CategoryResponseDto>> AddAsync(CategoryAddDto category);
 
     /// <summary>
     ///     Update category for a given id.
@@ -55,9 +56,12 @@ public interface ICategoryService
     ///     Data to update category.
     /// </param>
     /// <returns>
-    ///     Returns null if category is not found. If it is, returns updated category.
+    ///     Returns an <see cref="ErrorOr{TValue}"/> containing the updated <see cref="CategoryResponseDto"/>,
+    ///     an <see cref="Error"/> of type <see cref="ErrorType.NotFound"/> if no category with the given <paramref name="id"/> exists,
+    ///     an <see cref="Error"/> of type <see cref="ErrorType.Validation"/> if <paramref name="data"/> contains an out-of-range SortOrder,
+    ///     or an <see cref="Error"/> of type <see cref="ErrorType.Conflict"/> if the slug derived from the new name is already taken.
     /// </returns>
-    Task<CategoryResponseDto?> UpdateAsync(Guid id, CategoryUpdateDto data);
+    Task<ErrorOr<CategoryResponseDto>> UpdateAsync(Guid id, CategoryUpdateDto data);
 
     /// <summary>
     ///     Delete category for a given id.
@@ -66,7 +70,8 @@ public interface ICategoryService
     ///     The identifier of category to remove.
     /// </param>
     /// <returns>
-    ///     Returns true if category is successfully deleted. False if category does not exist.
+    ///     Returns an <see cref="ErrorOr{TValue}"/> of <see cref="Deleted"/> if the category was deleted,
+    ///     or an <see cref="Error"/> of type <see cref="ErrorType.NotFound"/> if no category with the given <paramref name="id"/> exists.
     /// </returns>
-    Task<bool> DeleteAsync(Guid id);
+    Task<ErrorOr<Deleted>> DeleteAsync(Guid id);
 }

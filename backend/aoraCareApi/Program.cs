@@ -1,8 +1,6 @@
 using aoraCareApi.Application.Services;
 using aoraCareApi.Application.Services.Interfaces;
-using aoraCareApi.Application.Validators;
 using aoraCareApi.Infrastructure.Data;
-using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);

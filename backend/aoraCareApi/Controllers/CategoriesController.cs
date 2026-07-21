@@ -1,11 +1,12 @@
 using aoraCareApi.Application.Dtos;
 using aoraCareApi.Application.Services.Interfaces;
+using aoraCareApi.Controllers.Extension;
 using Microsoft.AspNetCore.Mvc;
 
 namespace aoraCareApi.Controllers;
 
 /// <summary>
-///     Controller mapping for category iperations
+///     Controller mapping for category operations
 /// </summary>
 [ApiController]
 [Route("[controller]")]
@@ -56,18 +57,15 @@ public class CategoriesController : ControllerBase
     ///     The identifier of the category to retrieve.
     /// </param>
     /// <returns>
-    ///     Returns category for a given <paramref name="id"/> <see cref="CategoryResponseDto"/>>
+    ///     Returns category for a given <paramref name="id"/> as <see cref="CategoryResponseDto"/>.
     /// </returns>
     /// <response code="200">Returns category for the given id</response>
     /// <response code="404">If category does not exist in the database.</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CategoryResponseDto>> GetAsync(Guid id)
-    {
-        var category = await _categoryService.GetAsync(id);
-        return category is not null ? category : NotFound($"Category with {id} not found");
-    }
+    public async Task<ActionResult<CategoryResponseDto>> GetAsync(Guid id) =>
+        (await _categoryService.GetAsync(id)).ToActionResult<CategoryResponseDto>(this);
 
     /// <summary>
     ///     Create new category.
@@ -79,13 +77,14 @@ public class CategoriesController : ControllerBase
     ///     Newly created <see cref="CategoryResponseDto" />
     /// </returns>
     /// <response code="201">Returns the newly created category.</response>
+    /// <response code="409">If slug created from name is not unique.</response>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CategoryResponseDto>> AddAsync(CategoryAddDto category)
     {
-        var created = await _categoryService.AddAsync(category);
-
-        return CreatedAtAction(nameof(GetAsync), new { Id = created.Id }, created);
+        var result = await _categoryService.AddAsync(category);
+        return result.ToActionResult<CategoryResponseDto>(this, StatusCodes.Status201Created);
     }
 
     /// <summary>
@@ -95,21 +94,25 @@ public class CategoriesController : ControllerBase
     ///     Identifier of the category to update
     /// </param>
     /// <param name="data">
-    ///     Data for updating category. All fields are optional. Id no new data is provided the original data remains.
+    ///     Data for updating category. All fields are optional. If no new data is provided the original data remains.
     /// </param>
     /// <returns>
-    ///     Return updated <see cref="CategoryResponseDto"/> for the given <paramref name="id"/>.
+    ///     Return updated <see cref="CategoryResponseDto"/> for the given id.
     /// </returns>
+    /// <response code="200">Returns the updated category.</response>
+    /// <response code="404">If category with the given id does not exist.</response>
+    /// <response code="409">If slug created from the new name is not unique.</response>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CategoryResponseDto>> UpdateAsync(
         Guid id,
         CategoryUpdateDto data
     )
     {
-        var updated = await _categoryService.UpdateAsync(id, data);
-        return updated is not null ? updated : NotFound("Category not found");
+        var result = await _categoryService.UpdateAsync(id, data);
+        return result.ToActionResult<CategoryResponseDto>(this);
     }
 
     /// <summary>
@@ -126,9 +129,9 @@ public class CategoriesController : ControllerBase
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteAsync(Guid id)
-    {
-        bool success = await _categoryService.DeleteAsync(id);
-        return success ? NoContent() : NotFound("Category not found");
-    }
+    public async Task<IActionResult> DeleteAsync(Guid id) =>
+        (await _categoryService.DeleteAsync(id)).ToActionResult(
+            this,
+            StatusCodes.Status204NoContent
+        );
 }

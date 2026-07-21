@@ -6,7 +6,7 @@ namespace aoraCareApi.Domain.Common;
 public static class SlugHelper
 {
     public static string CreateSlug(string name) =>
-        RemoveDiacritics(name).ToLower().Replace(' ', '-');
+        RemoveDiacritics(name.Trim()).ToLower().Replace(' ', '-');
 
     private static string RemoveDiacritics(string input)
     {
