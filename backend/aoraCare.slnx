@@ -1,3 +1,11 @@
 <Solution>
-  <Project Path="aoraCareApi/aoraCareApi.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/AoraCare.Domain/AoraCare.Domain.csproj" />
+    <Project Path="src/AoraCare.Application/AoraCare.Application.csproj" />
+    <Project Path="src/AoraCare.Infrastructure/AoraCare.Infrastructure.csproj" />
+    <Project Path="src/AoraCare.Api/AoraCare.Api.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/AoraCare.Domain.Tests/AoraCare.Domain.Tests.csproj" />
+  </Folder>
 </Solution>
