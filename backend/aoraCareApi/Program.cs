@@ -1,6 +1,8 @@
 using aoraCareApi.Application.Services;
 using aoraCareApi.Application.Services.Interfaces;
+using aoraCareApi.Application.Validators;
 using aoraCareApi.Infrastructure.Data;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +14,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Application services
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+
+// Validators
+builder.Services.AddValidatorsFromAssemblyContaining<CategoryAddDtoValidator>();
 
 // .NET 8+ trims the "Async" suffix from action names by default, which breaks
 // nameof(XAsync) references used in CreatedAtAction/RedirectToAction. Keep full

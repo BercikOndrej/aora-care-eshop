@@ -1,5 +1,7 @@
 using aoraCareApi.Application.Dtos;
+using aoraCareApi.Application.Services;
 using aoraCareApi.Application.Services.Interfaces;
+using aoraCareApi.Application.Validators;
 using aoraCareApi.Controllers.Extension;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,6 +15,8 @@ namespace aoraCareApi.Controllers;
 public class CategoriesController : ControllerBase
 {
     private ICategoryService _categoryService;
+    private CategoryAddDtoValidator _addDtoValidator;
+    private CategoryUpdateDtoValidator _updateDtoValidator;
 
     /// <summary>
     ///     Default constructor
@@ -20,9 +24,15 @@ public class CategoriesController : ControllerBase
     /// <param name="categoryService">
     ///     Service provides operation for Categories
     /// </param>
-    public CategoriesController(ICategoryService categoryService)
+    public CategoriesController(
+        ICategoryService categoryService,
+        CategoryAddDtoValidator addDtoValidator,
+        CategoryUpdateDtoValidator updateDtoValidator
+    )
     {
         _categoryService = categoryService;
+        _addDtoValidator = addDtoValidator;
+        _updateDtoValidator = updateDtoValidator;
     }
 
     /// <summary>
@@ -77,12 +87,21 @@ public class CategoriesController : ControllerBase
     ///     Newly created <see cref="CategoryResponseDto" />
     /// </returns>
     /// <response code="201">Returns the newly created category.</response>
+    /// <response code="400">If the request body fails validation.</response>
     /// <response code="409">If slug created from name is not unique.</response>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CategoryResponseDto>> AddAsync(CategoryAddDto category)
     {
+        var validation = _addDtoValidator.Validate(category);
+        if (!validation.IsValid)
+        {
+            validation.AddToModelState(ModelState);
+            return ValidationProblem(ModelState);
+        }
+
         var result = await _categoryService.AddAsync(category);
         return result.ToActionResult<CategoryResponseDto>(this, StatusCodes.Status201Created);
     }
@@ -100,10 +119,12 @@ public class CategoriesController : ControllerBase
     ///     Return updated <see cref="CategoryResponseDto"/> for the given id.
     /// </returns>
     /// <response code="200">Returns the updated category.</response>
+    /// <response code="400">If the request body fails validation.</response>
     /// <response code="404">If category with the given id does not exist.</response>
     /// <response code="409">If slug created from the new name is not unique.</response>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CategoryResponseDto>> UpdateAsync(
@@ -111,6 +132,13 @@ public class CategoriesController : ControllerBase
         CategoryUpdateDto data
     )
     {
+        var validation = _updateDtoValidator.Validate(data);
+        if (!validation.IsValid)
+        {
+            validation.AddToModelState(ModelState);
+            return ValidationProblem(ModelState);
+        }
+
         var result = await _categoryService.UpdateAsync(id, data);
         return result.ToActionResult<CategoryResponseDto>(this);
     }
