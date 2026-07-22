@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <ItemGroup>
     <ProjectReference Include="..\AoraCare.Domain\AoraCare.Domain.csproj" />
-    <ProjectReference Include="..\AoraCare.Application\AoraCare.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,5 +17,4 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
 </Project>

@@ -1,12 +1,16 @@
 using AoraCare.Api.Middlewares;
+using AoraCare.Application.Services;
 using AoraCare.Application.Services.Interfaces;
 using AoraCare.Application.Validators;
+using AoraCare.Domain.Repositories;
 using AoraCare.Infrastructure.Data;
-using AoraCare.Infrastructure.Services;
+using AoraCare.Infrastructure.Repositories;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// * Services
 
 // DB
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -15,6 +19,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Middlewares registartion
 builder.Services.AddTransient<GlobalExceptionHandlingMiddleware>();
+
+// Repositories
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Application services
 builder.Services.AddScoped<ICategoryService, CategoryService>();
