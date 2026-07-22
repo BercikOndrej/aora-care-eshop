@@ -1,3 +1,4 @@
+using AoraCare.Api.Middlewares;
 using AoraCare.Application.Services.Interfaces;
 using AoraCare.Application.Validators;
 using AoraCare.Infrastructure.Data;
@@ -11,6 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
 );
+
+// Middlewares registartion
+builder.Services.AddTransient<GlobalExceptionHandlingMiddleware>();
 
 // Application services
 builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -38,6 +42,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseGlobalExceptionMiddleware();
 
 app.MapControllers();
 
