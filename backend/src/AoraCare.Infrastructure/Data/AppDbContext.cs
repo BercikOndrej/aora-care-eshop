@@ -1,4 +1,4 @@
-using AoraCare.Domain;
+using AoraCare.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace AoraCare.Infrastructure.Data;

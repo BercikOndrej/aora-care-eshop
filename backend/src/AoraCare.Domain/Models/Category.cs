@@ -1,12 +1,10 @@
-namespace AoraCare.Domain;
+namespace AoraCare.Domain.Models;
 
-public class Product
+public class Category
 {
     public Guid Id { get; set; }
 
-    public Guid? CategoryId { get; set; }
-
-    public Category? Category { get; set; }
+    public ICollection<Product> Products { get; set; }
 
     public string Name { get; set; }
 
@@ -14,13 +12,9 @@ public class Product
 
     public string Description { get; set; }
 
-    public string ImageUrl { get; set; }
-
     public int SortOrder { get; set; }
 
     public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
-
-    public DateTime UpdatedAt { get; set; }
 }

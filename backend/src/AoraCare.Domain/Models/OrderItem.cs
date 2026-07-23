@@ -1,0 +1,1 @@
+namespace AoraCare.Domain.Models;

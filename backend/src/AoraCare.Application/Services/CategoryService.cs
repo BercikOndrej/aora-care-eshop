@@ -2,6 +2,7 @@ using AoraCare.Application.Dtos;
 using AoraCare.Application.Services.Interfaces;
 using AoraCare.Domain;
 using AoraCare.Domain.Common;
+using AoraCare.Domain.Models;
 using AoraCare.Domain.Repositories;
 using ErrorOr;
 

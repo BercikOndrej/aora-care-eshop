@@ -1,3 +1,5 @@
+using AoraCare.Domain.Models;
+
 namespace AoraCare.Domain.Repositories;
 
 /// <summary>

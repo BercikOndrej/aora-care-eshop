@@ -1,4 +1,5 @@
 using AoraCare.Domain;
+using AoraCare.Domain.Models;
 
 namespace AoraCare.Application.Dtos;
 
