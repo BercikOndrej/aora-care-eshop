@@ -1,5 +1,5 @@
 using AoraCare.Domain.Models;
-using AoraCare.Domain.Repositories;
+using AoraCare.Domain.Repositories.Interfaces;
 using AoraCare.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,58 +15,39 @@ public class CategoryRepository : ICategoryRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<Category>> GetAllCategoriesAsync(
-        bool asNoTracking = true,
-        CancellationToken ct = default
-    )
-    {
-        IQueryable<Category> query = _dbContext.Set<Category>();
-        if (asNoTracking)
-            query = query.AsNoTracking();
+    public async Task<IReadOnlyList<Category>> GetAllCategoriesAsync(CancellationToken ct = default) =>
+        await _dbContext.Set<Category>().AsNoTracking().ToListAsync(ct);
 
-        return await query.ToListAsync(ct);
-    }
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<Category>> GetAllCategoriesForUpdateAsync(
+        CancellationToken ct = default
+    ) => await _dbContext.Set<Category>().ToListAsync(ct);
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<Category>> GetAllCategoriesWithProductsAsync(
-        bool asNoTracking = true,
         CancellationToken ct = default
-    )
-    {
-        IQueryable<Category> query = _dbContext.Set<Category>().Include(c => c.Products);
-        if (asNoTracking)
-            query = query.AsNoTracking();
-
-        return await query.ToListAsync(ct);
-    }
+    ) =>
+        await _dbContext
+            .Set<Category>()
+            .Include(c => c.Products)
+            .AsNoTracking()
+            .ToListAsync(ct);
 
     /// <inheritdoc/>
-    public Task<Category?> GetCategoryAsync(
-        Guid id,
-        bool asNoTracking = true,
-        CancellationToken ct = default
-    )
-    {
-        IQueryable<Category> query = _dbContext.Set<Category>();
-        if (asNoTracking)
-            query = query.AsNoTracking();
-
-        return query.FirstOrDefaultAsync(c => c.Id == id, ct);
-    }
+    public Task<Category?> GetCategoryAsync(Guid id, CancellationToken ct = default) =>
+        _dbContext.Set<Category>().AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
 
     /// <inheritdoc/>
-    public Task<Category?> GetCategoryWithProductsAsync(
-        Guid id,
-        bool asNoTracking = true,
-        CancellationToken ct = default
-    )
-    {
-        IQueryable<Category> query = _dbContext.Set<Category>().Include(c => c.Products);
-        if (asNoTracking)
-            query = query.AsNoTracking();
+    public Task<Category?> GetCategoryForUpdateAsync(Guid id, CancellationToken ct = default) =>
+        _dbContext.Set<Category>().FirstOrDefaultAsync(c => c.Id == id, ct);
 
-        return query.FirstOrDefaultAsync(c => c.Id == id, ct);
-    }
+    /// <inheritdoc/>
+    public Task<Category?> GetCategoryWithProductsAsync(Guid id, CancellationToken ct = default) =>
+        _dbContext
+            .Set<Category>()
+            .Include(c => c.Products)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id, ct);
 
     /// <inheritdoc/>
     public void Add(Category category) => _dbContext.Set<Category>().Add(category);

@@ -1,5 +1,5 @@
 using AoraCare.Domain;
-using AoraCare.Domain.Repositories;
+using AoraCare.Domain.Repositories.Interfaces;
 using AoraCare.Infrastructure.Data;
 using AoraCare.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;

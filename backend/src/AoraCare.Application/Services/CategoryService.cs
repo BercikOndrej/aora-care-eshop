@@ -3,7 +3,7 @@ using AoraCare.Application.Services.Interfaces;
 using AoraCare.Domain;
 using AoraCare.Domain.Common;
 using AoraCare.Domain.Models;
-using AoraCare.Domain.Repositories;
+using AoraCare.Domain.Repositories.Interfaces;
 using ErrorOr;
 
 namespace AoraCare.Application.Services;
@@ -99,7 +99,7 @@ public class CategoryService : ICategoryService
         CancellationToken ct = default
     )
     {
-        var old = await _repository.GetCategoryAsync(id, asNoTracking: false, ct);
+        var old = await _repository.GetCategoryForUpdateAsync(id, ct);
         if (old is null)
             return Error.NotFound(description: $"Category with {id} not found.");
 
@@ -177,7 +177,7 @@ public class CategoryService : ICategoryService
     ///     List of ordered categories by property SortOrder
     /// </returns>
     private async Task<List<Category>> GetOrderedCategoriesAsync(CancellationToken ct = default) =>
-        (await _repository.GetAllCategoriesAsync(asNoTracking: false, ct))
+        (await _repository.GetAllCategoriesForUpdateAsync(ct))
             .OrderBy(c => c.SortOrder)
             .ToList();
 
