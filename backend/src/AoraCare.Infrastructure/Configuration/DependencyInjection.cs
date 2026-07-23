@@ -1,3 +1,4 @@
+using AoraCare.Domain;
 using AoraCare.Domain.Repositories;
 using AoraCare.Infrastructure.Data;
 using AoraCare.Infrastructure.Repositories;

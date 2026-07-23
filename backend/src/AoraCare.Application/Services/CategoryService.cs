@@ -23,8 +23,8 @@ public class CategoryService : ICategoryService
     /// <remarks>
     ///     For admin use — includes inactive categories.
     /// </remarks>
-    public async Task<List<CategoryResponseDto>> GetAllAsync() =>
-        (await _repository.GetAllCategoriesAsync())
+    public async Task<List<CategoryResponseDto>> GetAllAsync(CancellationToken ct = default) =>
+        (await _repository.GetAllCategoriesAsync(ct: ct))
             .Select(c => new CategoryResponseDto(
                 c.Id,
                 c.Name,
@@ -36,8 +36,10 @@ public class CategoryService : ICategoryService
             .ToList();
 
     /// <inheritdoc cref="ICategoryService.GetAllActiveAsync"/>
-    public async Task<List<CategoryResponseDto>> GetAllActiveAsync() =>
-        (await _repository.GetAllCategoriesAsync())
+    public async Task<List<CategoryResponseDto>> GetAllActiveAsync(
+        CancellationToken ct = default
+    ) =>
+        (await _repository.GetAllCategoriesAsync(ct: ct))
             .Where(c => c.IsActive)
             .Select(c => new CategoryResponseDto(
                 c.Id,
@@ -50,9 +52,12 @@ public class CategoryService : ICategoryService
             .ToList();
 
     /// <inheritdoc cref="ICategoryService.GetAsync"/>
-    public async Task<ErrorOr<CategoryResponseDto>> GetAsync(Guid id)
+    public async Task<ErrorOr<CategoryResponseDto>> GetAsync(
+        Guid id,
+        CancellationToken ct = default
+    )
     {
-        var category = await _repository.GetCategoryWithProductsAsync(id);
+        var category = await _repository.GetCategoryWithProductsAsync(id, ct: ct);
 
         return category is null
             ? Error.NotFound(description: $"Category with {id} not found.")
@@ -60,10 +65,13 @@ public class CategoryService : ICategoryService
     }
 
     /// <inheritdoc cref="ICategoryService.AddAsync"/>
-    public async Task<ErrorOr<CategoryResponseDto>> AddAsync(CategoryAddDto dto)
+    public async Task<ErrorOr<CategoryResponseDto>> AddAsync(
+        CategoryAddDto dto,
+        CancellationToken ct = default
+    )
     {
         string slug = SlugHelper.CreateSlug(dto.Name);
-        if (!await IsSlugUnique(slug))
+        if (!await IsSlugUnique(slug, ct: ct))
             return Error.Conflict(
                 description: $"Property {nameof(dto.Name)} has no unique slug. Try another name (Slug is created form name automatically)"
             );
@@ -75,26 +83,30 @@ public class CategoryService : ICategoryService
             Name = dto.Name,
             Slug = slug,
             Description = dto.Description,
-            SortOrder = await GetNextOrder(),
+            SortOrder = await GetNextOrder(ct),
             IsActive = dto.IsActive ?? true,
             CreatedAt = DateTime.UtcNow,
         };
         _repository.Add(category);
-        await _uow.SaveChangesAsync();
+        await _uow.SaveChangesAsync(ct);
         return category.ToDto();
     }
 
     /// <inheritdoc cref="ICategoryService.UpdateAsync"/>
-    public async Task<ErrorOr<CategoryResponseDto>> UpdateAsync(Guid id, CategoryUpdateDto dto)
+    public async Task<ErrorOr<CategoryResponseDto>> UpdateAsync(
+        Guid id,
+        CategoryUpdateDto dto,
+        CancellationToken ct = default
+    )
     {
-        var old = await _repository.GetCategoryAsync(id, asNoTracking: false);
+        var old = await _repository.GetCategoryAsync(id, asNoTracking: false, ct);
         if (old is null)
             return Error.NotFound(description: $"Category with {id} not found.");
 
         if (dto.Name is not null && !dto.Name.Equals(old.Name))
         {
             var slug = SlugHelper.CreateSlug(dto.Name);
-            if (!await IsSlugUnique(slug, id))
+            if (!await IsSlugUnique(slug, id, ct))
                 return Error.Conflict(
                     description: $"Property {nameof(dto.Name)} has no unique slug. Try another name."
                 );
@@ -109,21 +121,21 @@ public class CategoryService : ICategoryService
         if (dto.SortOrder is not null)
         {
             int newIndex = dto.SortOrder.Value;
-            if (newIndex < 0 || newIndex >= (await _repository.GetAllCategoriesAsync()).Count)
+            if (newIndex < 0 || newIndex >= (await _repository.GetAllCategoriesAsync(ct: ct)).Count)
                 return Error.Validation(
                     description: $"SortOrder value is out of index range. Value cannot be greater than categories count"
                 );
-            await UpdateCategoryOrder(id, dto.SortOrder.Value);
+            await UpdateCategoryOrder(id, dto.SortOrder.Value, ct);
         }
 
-        await _uow.SaveChangesAsync();
+        await _uow.SaveChangesAsync(ct);
         return old.ToDto();
     }
 
     /// <inheritdoc cref="ICategoryService.DeleteAsync"/>
-    public async Task<ErrorOr<Deleted>> DeleteAsync(Guid id)
+    public async Task<ErrorOr<Deleted>> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var categories = await GetOrderedCategoriesAsync();
+        var categories = await GetOrderedCategoriesAsync(ct);
         var category = categories.FirstOrDefault(c => c.Id == id);
 
         if (category is null)
@@ -133,7 +145,7 @@ public class CategoryService : ICategoryService
         categories.Remove(category);
         ReorderAllCategories(categories);
 
-        await _uow.SaveChangesAsync();
+        await _uow.SaveChangesAsync(ct);
 
         return Result.Deleted;
     }
@@ -143,11 +155,14 @@ public class CategoryService : ICategoryService
     /// <summary>
     ///     Get next valid value for correct sorting property.
     /// </summary>
+    /// <param name="ct">
+    ///     Token to cancel the operation.
+    /// </param>
     /// <returns>
     ///     Value that represent postition.
     /// </returns>
-    private async Task<int> GetNextOrder() =>
-        (await _repository.GetAllCategoriesAsync()).Max(c => (int?)c.SortOrder) is int max
+    private async Task<int> GetNextOrder(CancellationToken ct = default) =>
+        (await _repository.GetAllCategoriesAsync(ct: ct)).Max(c => (int?)c.SortOrder) is int max
             ? max + 1
             : 0;
 
@@ -155,11 +170,14 @@ public class CategoryService : ICategoryService
     ///     Helper method to get all ordered categories.
     ///     Entities are tracked since callers mutate <see cref="Category.SortOrder"/> in place.
     /// </summary>
+    /// <param name="ct">
+    ///     Token to cancel the operation.
+    /// </param>
     /// <returns>
     ///     List of ordered categories by property SortOrder
     /// </returns>
-    private async Task<List<Category>> GetOrderedCategoriesAsync() =>
-        (await _repository.GetAllCategoriesAsync(asNoTracking: false))
+    private async Task<List<Category>> GetOrderedCategoriesAsync(CancellationToken ct = default) =>
+        (await _repository.GetAllCategoriesAsync(asNoTracking: false, ct))
             .OrderBy(c => c.SortOrder)
             .ToList();
 
@@ -182,9 +200,12 @@ public class CategoryService : ICategoryService
     /// <param name="newIndex">
     ///     New position for the given category. Allowed values have to be in interval [0, category count).
     /// </param>
-    private async Task UpdateCategoryOrder(Guid id, int newIndex)
+    /// <param name="ct">
+    ///     Token to cancel the operation.
+    /// </param>
+    private async Task UpdateCategoryOrder(Guid id, int newIndex, CancellationToken ct = default)
     {
-        var categories = await GetOrderedCategoriesAsync();
+        var categories = await GetOrderedCategoriesAsync(ct: ct);
 
         var found = categories.First(c => c.Id == id);
 
@@ -203,9 +224,15 @@ public class CategoryService : ICategoryService
     /// <param name="id">
     ///     Id of updated item.
     /// </param>
+    /// <param name="ct">
+    ///     Token to cancel the operation.
+    /// </param>
     /// <returns></returns>
-    private async Task<bool> IsSlugUnique(string slug, Guid? id = null) =>
-        !(await _repository.GetAllCategoriesAsync()).Any(c => c.Slug == slug && c.Id != id);
+    private async Task<bool> IsSlugUnique(
+        string slug,
+        Guid? id = null,
+        CancellationToken ct = default
+    ) => !(await _repository.GetAllCategoriesAsync(ct: ct)).Any(c => c.Slug == slug && c.Id != id);
 
     #endregion
 }

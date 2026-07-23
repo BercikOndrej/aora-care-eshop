@@ -37,6 +37,9 @@ public class CategoriesController : ControllerBase
     /// <summary>
     ///     Get all categories.
     /// </summary>
+    /// <param name="ct">
+    ///     Token to cancel the operation.
+    /// </param>
     /// <returns>
     ///     Returns all <see cref="CategoryResponseDto"/>.
     /// </returns>
@@ -44,26 +47,34 @@ public class CategoriesController : ControllerBase
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     // Admin endpoint
-    public async Task<ActionResult<List<CategoryResponseDto>>> GetAllAsync() =>
-        await _categoryService.GetAllAsync();
+    public async Task<ActionResult<List<CategoryResponseDto>>> GetAllAsync(
+        CancellationToken ct = default
+    ) => await _categoryService.GetAllAsync(ct);
 
     /// <summary>
     ///     Get all active categories. Active = visible for a end user.
     /// </summary>
+    /// <param name="ct">
+    ///     Token to cancel the operation.
+    /// </param>
     /// <returns>
     ///     Returns all active <see cref="CategoryResponseDto"/>.
     /// </returns>
     /// <response code="200">Returns all categories.</response>
     [HttpGet("active")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<CategoryResponseDto>>> GetAllActiveAsync() =>
-        await _categoryService.GetAllActiveAsync();
+    public async Task<ActionResult<List<CategoryResponseDto>>> GetAllActiveAsync(
+        CancellationToken ct = default
+    ) => await _categoryService.GetAllActiveAsync(ct);
 
     /// <summary>
     ///     Get category for a given id.
     /// </summary>
     /// <param name="id">
     ///     The identifier of the category to retrieve.
+    /// </param>
+    /// <param name="ct">
+    ///     Token to cancel the operation.
     /// </param>
     /// <returns>
     ///     Returns category for a given <paramref name="id"/> as <see cref="CategoryResponseDto"/>.
@@ -73,14 +84,19 @@ public class CategoriesController : ControllerBase
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CategoryResponseDto>> GetAsync(Guid id) =>
-        (await _categoryService.GetAsync(id)).ToActionResult<CategoryResponseDto>(this);
+    public async Task<ActionResult<CategoryResponseDto>> GetAsync(
+        Guid id,
+        CancellationToken ct = default
+    ) => (await _categoryService.GetAsync(id, ct)).ToActionResult<CategoryResponseDto>(this);
 
     /// <summary>
     ///     Create new category.
     /// </summary>
     /// <param name="category">
     ///     Category to create in shape <see cref="CategoryAddDto"/>
+    /// </param>
+    /// <param name="ct">
+    ///     Token to cancel the operation.
     /// </param>
     /// <returns>
     ///     Newly created <see cref="CategoryResponseDto" />
@@ -92,7 +108,10 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<CategoryResponseDto>> AddAsync(CategoryAddDto category)
+    public async Task<ActionResult<CategoryResponseDto>> AddAsync(
+        CategoryAddDto category,
+        CancellationToken ct = default
+    )
     {
         var validation = _addDtoValidator.Validate(category);
         if (!validation.IsValid)
@@ -101,7 +120,7 @@ public class CategoriesController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        var result = await _categoryService.AddAsync(category);
+        var result = await _categoryService.AddAsync(category, ct);
         return result.ToActionResult<CategoryResponseDto>(this, StatusCodes.Status201Created);
     }
 
@@ -113,6 +132,9 @@ public class CategoriesController : ControllerBase
     /// </param>
     /// <param name="data">
     ///     Data for updating category. All fields are optional. If no new data is provided the original data remains.
+    /// </param>
+    /// <param name="ct">
+    ///     Token to cancel the operation.
     /// </param>
     /// <returns>
     ///     Return updated <see cref="CategoryResponseDto"/> for the given id.
@@ -128,7 +150,8 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CategoryResponseDto>> UpdateAsync(
         Guid id,
-        CategoryUpdateDto data
+        CategoryUpdateDto data,
+        CancellationToken ct = default
     )
     {
         var validation = _updateDtoValidator.Validate(data);
@@ -138,7 +161,7 @@ public class CategoriesController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        var result = await _categoryService.UpdateAsync(id, data);
+        var result = await _categoryService.UpdateAsync(id, data, ct);
         return result.ToActionResult<CategoryResponseDto>(this);
     }
 
@@ -148,6 +171,9 @@ public class CategoriesController : ControllerBase
     /// <param name="id">
     ///     The identifier of the category
     /// </param>
+    /// <param name="ct">
+    ///     Token to cancel the operation.
+    /// </param>
     /// <returns>
     ///     Returns no content
     /// </returns>
@@ -156,8 +182,8 @@ public class CategoriesController : ControllerBase
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteAsync(Guid id) =>
-        (await _categoryService.DeleteAsync(id)).ToActionResult(
+    public async Task<IActionResult> DeleteAsync(Guid id, CancellationToken ct = default) =>
+        (await _categoryService.DeleteAsync(id, ct)).ToActionResult(
             this,
             StatusCodes.Status204NoContent
         );

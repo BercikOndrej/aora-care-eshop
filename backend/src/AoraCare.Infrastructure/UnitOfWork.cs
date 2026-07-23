@@ -1,7 +1,7 @@
-using AoraCare.Domain.Repositories;
+using AoraCare.Domain;
 using AoraCare.Infrastructure.Data;
 
-namespace AoraCare.Infrastructure.Repositories;
+namespace AoraCare.Infrastructure;
 
 public class UnitOfWork : IUnitOfWork
 {
@@ -13,5 +13,5 @@ public class UnitOfWork : IUnitOfWork
     }
 
     /// <inheritdoc/>
-    public Task SaveChangesAsync() => _db.SaveChangesAsync();
+    public Task SaveChangesAsync(CancellationToken ct = default) => _db.SaveChangesAsync(ct);
 }

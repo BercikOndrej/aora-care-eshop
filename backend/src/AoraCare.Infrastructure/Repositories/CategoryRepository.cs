@@ -15,45 +15,57 @@ public class CategoryRepository : ICategoryRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<Category>> GetAllCategoriesAsync(bool asNoTracking = true)
+    public async Task<IReadOnlyList<Category>> GetAllCategoriesAsync(
+        bool asNoTracking = true,
+        CancellationToken ct = default
+    )
     {
         IQueryable<Category> query = _dbContext.Set<Category>();
         if (asNoTracking)
             query = query.AsNoTracking();
 
-        return await query.ToListAsync();
+        return await query.ToListAsync(ct);
     }
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<Category>> GetAllCategoriesWithProductsAsync(
-        bool asNoTracking = true
+        bool asNoTracking = true,
+        CancellationToken ct = default
     )
     {
         IQueryable<Category> query = _dbContext.Set<Category>().Include(c => c.Products);
         if (asNoTracking)
             query = query.AsNoTracking();
 
-        return await query.ToListAsync();
+        return await query.ToListAsync(ct);
     }
 
     /// <inheritdoc/>
-    public Task<Category?> GetCategoryAsync(Guid id, bool asNoTracking = true)
+    public Task<Category?> GetCategoryAsync(
+        Guid id,
+        bool asNoTracking = true,
+        CancellationToken ct = default
+    )
     {
         IQueryable<Category> query = _dbContext.Set<Category>();
         if (asNoTracking)
             query = query.AsNoTracking();
 
-        return query.FirstOrDefaultAsync(c => c.Id == id);
+        return query.FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 
     /// <inheritdoc/>
-    public Task<Category?> GetCategoryWithProductsAsync(Guid id, bool asNoTracking = true)
+    public Task<Category?> GetCategoryWithProductsAsync(
+        Guid id,
+        bool asNoTracking = true,
+        CancellationToken ct = default
+    )
     {
         IQueryable<Category> query = _dbContext.Set<Category>().Include(c => c.Products);
         if (asNoTracking)
             query = query.AsNoTracking();
 
-        return query.FirstOrDefaultAsync(c => c.Id == id);
+        return query.FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 
     /// <inheritdoc/>

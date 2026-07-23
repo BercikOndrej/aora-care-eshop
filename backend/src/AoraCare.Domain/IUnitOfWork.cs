@@ -1,4 +1,4 @@
-namespace AoraCare.Domain.Repositories;
+namespace AoraCare.Domain;
 
 /// <summary>
 ///     Commits pending repository changes as a single transaction.
@@ -8,5 +8,5 @@ public interface IUnitOfWork
     /// <summary>
     ///     Persists all tracked changes to the database.
     /// </summary>
-    Task SaveChangesAsync();
+    Task SaveChangesAsync(CancellationToken ct = default);
 }
