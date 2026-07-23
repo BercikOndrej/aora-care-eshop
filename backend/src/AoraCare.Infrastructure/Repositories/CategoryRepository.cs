@@ -15,30 +15,25 @@ public class CategoryRepository : ICategoryRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<Category>> GetAllCategoriesAsync(CancellationToken ct = default) =>
+    public async Task<IReadOnlyList<Category>> GetAllAsync(CancellationToken ct = default) =>
         await _dbContext.Set<Category>().AsNoTracking().ToListAsync(ct);
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<Category>> GetAllCategoriesForUpdateAsync(
+    public async Task<IReadOnlyList<Category>> GetAllForUpdateAsync(
         CancellationToken ct = default
     ) => await _dbContext.Set<Category>().ToListAsync(ct);
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<Category>> GetAllCategoriesWithProductsAsync(
         CancellationToken ct = default
-    ) =>
-        await _dbContext
-            .Set<Category>()
-            .Include(c => c.Products)
-            .AsNoTracking()
-            .ToListAsync(ct);
+    ) => await _dbContext.Set<Category>().Include(c => c.Products).AsNoTracking().ToListAsync(ct);
 
     /// <inheritdoc/>
-    public Task<Category?> GetCategoryAsync(Guid id, CancellationToken ct = default) =>
+    public Task<Category?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         _dbContext.Set<Category>().AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
 
     /// <inheritdoc/>
-    public Task<Category?> GetCategoryForUpdateAsync(Guid id, CancellationToken ct = default) =>
+    public Task<Category?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default) =>
         _dbContext.Set<Category>().FirstOrDefaultAsync(c => c.Id == id, ct);
 
     /// <inheritdoc/>

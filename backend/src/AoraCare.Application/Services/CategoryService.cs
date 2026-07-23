@@ -24,7 +24,7 @@ public class CategoryService : ICategoryService
     ///     For admin use — includes inactive categories.
     /// </remarks>
     public async Task<List<CategoryResponseDto>> GetAllAsync(CancellationToken ct = default) =>
-        (await _repository.GetAllCategoriesAsync(ct: ct))
+        (await _repository.GetAllAsync(ct: ct))
             .Select(c => new CategoryResponseDto(
                 c.Id,
                 c.Name,
@@ -39,7 +39,7 @@ public class CategoryService : ICategoryService
     public async Task<List<CategoryResponseDto>> GetAllActiveAsync(
         CancellationToken ct = default
     ) =>
-        (await _repository.GetAllCategoriesAsync(ct: ct))
+        (await _repository.GetAllAsync(ct: ct))
             .Where(c => c.IsActive)
             .Select(c => new CategoryResponseDto(
                 c.Id,
@@ -99,7 +99,7 @@ public class CategoryService : ICategoryService
         CancellationToken ct = default
     )
     {
-        var old = await _repository.GetCategoryForUpdateAsync(id, ct);
+        var old = await _repository.GetByIdForUpdateAsync(id, ct);
         if (old is null)
             return Error.NotFound(description: $"Category with {id} not found.");
 
@@ -121,7 +121,7 @@ public class CategoryService : ICategoryService
         if (dto.SortOrder is not null)
         {
             int newIndex = dto.SortOrder.Value;
-            if (newIndex < 0 || newIndex >= (await _repository.GetAllCategoriesAsync(ct: ct)).Count)
+            if (newIndex < 0 || newIndex >= (await _repository.GetAllAsync(ct: ct)).Count)
                 return Error.Validation(
                     description: $"SortOrder value is out of index range. Value cannot be greater than categories count"
                 );
@@ -162,7 +162,7 @@ public class CategoryService : ICategoryService
     ///     Value that represent postition.
     /// </returns>
     private async Task<int> GetNextOrder(CancellationToken ct = default) =>
-        (await _repository.GetAllCategoriesAsync(ct: ct)).Max(c => (int?)c.SortOrder) is int max
+        (await _repository.GetAllAsync(ct: ct)).Max(c => (int?)c.SortOrder) is int max
             ? max + 1
             : 0;
 
@@ -177,9 +177,7 @@ public class CategoryService : ICategoryService
     ///     List of ordered categories by property SortOrder
     /// </returns>
     private async Task<List<Category>> GetOrderedCategoriesAsync(CancellationToken ct = default) =>
-        (await _repository.GetAllCategoriesForUpdateAsync(ct))
-            .OrderBy(c => c.SortOrder)
-            .ToList();
+        (await _repository.GetAllForUpdateAsync(ct)).OrderBy(c => c.SortOrder).ToList();
 
     /// <summary>
     ///     Reorder all categories based on order in given list.
@@ -232,7 +230,7 @@ public class CategoryService : ICategoryService
         string slug,
         Guid? id = null,
         CancellationToken ct = default
-    ) => !(await _repository.GetAllCategoriesAsync(ct: ct)).Any(c => c.Slug == slug && c.Id != id);
+    ) => !(await _repository.GetAllAsync(ct: ct)).Any(c => c.Slug == slug && c.Id != id);
 
     #endregion
 }
