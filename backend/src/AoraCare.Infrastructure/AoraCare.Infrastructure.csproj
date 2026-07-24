@@ -1,5 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../AoraCare.Application.Abstractions/AoraCare.Application.Abstractions.csproj" />
     <ProjectReference Include="..\AoraCare.Domain\AoraCare.Domain.csproj" />
   </ItemGroup>
 
