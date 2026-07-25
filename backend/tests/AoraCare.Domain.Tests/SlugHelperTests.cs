@@ -3,6 +3,7 @@ using FluentAssertions;
 
 namespace AoraCare.Domain.Tests;
 
+[Trait("Category", "Unit")]
 public class SlugHelperTests
 {
     [Theory]
