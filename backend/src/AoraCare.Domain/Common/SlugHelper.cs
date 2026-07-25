@@ -1,12 +1,18 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace AoraCare.Domain.Common;
 
 public static class SlugHelper
 {
-    public static string CreateSlug(string name) =>
-        RemoveDiacritics(name.Trim()).ToLower().Replace(' ', '-');
+    public static string CreateSlug(string name)
+    {
+        name = Regex.Replace(name, @"[\W_]", " ");
+        name = Regex.Replace(name, @"\s+", " ");
+        name = name.Trim();
+        return RemoveDiacritics(name).ToLowerInvariant().Replace(' ', '-');
+    }
 
     private static string RemoveDiacritics(string input)
     {

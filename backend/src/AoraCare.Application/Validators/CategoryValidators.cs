@@ -10,8 +10,17 @@ public class CategoryAddDtoValidator : AbstractValidator<CategoryAddDto>
 {
     public CategoryAddDtoValidator()
     {
-        RuleFor(c => c.Name).NotEmpty().MaximumLength(255);
-        RuleFor(c => c.Description).NotEmpty().MaximumLength(1024);
+        RuleFor(c => c.Name)
+            .NotEmpty()
+            .MaximumLength(255)
+            .Matches(@"\w")
+            .WithMessage("'Name' must contain at least one letter or digit.");
+        RuleFor(c => c.Description)
+            .NotEmpty()
+            .MaximumLength(1024)
+            .Matches(@"\w")
+            .WithMessage("'Description' must contain at least one letter or digit.");
+        ;
     }
 }
 
@@ -22,10 +31,17 @@ public class CategoryUpdateDtoValidator : AbstractValidator<CategoryUpdateDto>
 {
     public CategoryUpdateDtoValidator()
     {
-        RuleFor(c => c.Name).NotEmpty().MaximumLength(255).When(c => c.Name is not null);
+        RuleFor(c => c.Name)
+            .NotEmpty()
+            .MaximumLength(255)
+            .Matches(@"\w")
+            .WithMessage("'Name' must contain at least one letter or digit.")
+            .When(c => c.Name is not null);
         RuleFor(c => c.Description)
             .NotEmpty()
             .MaximumLength(1024)
+            .Matches(@"\w")
+            .WithMessage("'Description' must contain at least one letter or digit.")
             .When(c => c.Description is not null);
         RuleFor(c => c.SortOrder).GreaterThan(-1).When(c => c.SortOrder is not null);
     }
