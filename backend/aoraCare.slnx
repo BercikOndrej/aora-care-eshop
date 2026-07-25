@@ -7,6 +7,8 @@
     <Project Path="src/AoraCare.Api/AoraCare.Api.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests/AoraCare.Application.Tests/AoraCare.Application.Tests.csproj" />
     <Project Path="tests/AoraCare.Domain.Tests/AoraCare.Domain.Tests.csproj" />
+    <Project Path="tests/AoraCare.Integration.Tests/AoraCare.Integration.Tests.csproj" />
   </Folder>
 </Solution>
