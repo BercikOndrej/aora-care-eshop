@@ -84,7 +84,7 @@ public class CategoriesController : ControllerBase
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CategoryResponseDto>> GetAsync(
+    public async Task<ActionResult<CategoryResponseDto>> GetByIdAsync(
         Guid id,
         CancellationToken ct = default
     ) => (await _categoryService.GetAsync(id, ct)).ToActionResult<CategoryResponseDto>(this);
