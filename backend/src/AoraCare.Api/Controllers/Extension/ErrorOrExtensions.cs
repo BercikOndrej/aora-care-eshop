@@ -13,17 +13,22 @@ public static class ErrorOrExtensions
         result.Match(
             value => controller.StatusCode(statusCode, value),
             errors =>
-                controller.Problem(
-                    statusCode: errors.First().Type switch
-                    {
-                        ErrorType.NotFound => StatusCodes.Status404NotFound,
-                        ErrorType.Validation => StatusCodes.Status400BadRequest,
-                        ErrorType.Conflict => StatusCodes.Status409Conflict,
-                        ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
-                        ErrorType.Forbidden => StatusCodes.Status403Forbidden,
-                        _ => StatusCodes.Status500InternalServerError,
-                    },
-                    title: errors.First().Description
-                )
+            {
+                (int httpStatusCode, string title) = errors.First().Type switch
+                {
+                    ErrorType.NotFound => (StatusCodes.Status404NotFound, "Not Found"),
+                    ErrorType.Validation => (StatusCodes.Status400BadRequest, "Bad Request"),
+                    ErrorType.Conflict => (StatusCodes.Status409Conflict, "Conflict"),
+                    ErrorType.Unauthorized => (StatusCodes.Status401Unauthorized, "Unauthorized"),
+                    ErrorType.Forbidden => (StatusCodes.Status403Forbidden, "Forbidden"),
+                    _ => (StatusCodes.Status500InternalServerError, "Server Error"),
+                };
+
+                return controller.Problem(
+                    statusCode: httpStatusCode,
+                    title: title,
+                    detail: errors.First().Description
+                );
+            }
         );
 }

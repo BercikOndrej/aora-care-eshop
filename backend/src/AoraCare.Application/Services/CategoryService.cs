@@ -5,6 +5,7 @@ using AoraCare.Domain.Common;
 using AoraCare.Domain.Models;
 using AoraCare.Domain.Repositories.Interfaces;
 using ErrorOr;
+using Microsoft.Extensions.Logging;
 
 namespace AoraCare.Application.Services;
 
@@ -13,10 +14,17 @@ public class CategoryService : ICategoryService
     private readonly ICategoryRepository _repository;
     private readonly IUnitOfWork _uow;
 
-    public CategoryService(ICategoryRepository repository, IUnitOfWork unitOfWork)
+    private readonly ILogger<CategoryService> _logger;
+
+    public CategoryService(
+        ICategoryRepository repository,
+        IUnitOfWork unitOfWork,
+        ILogger<CategoryService> logger
+    )
     {
         _repository = repository;
         _uow = unitOfWork;
+        _logger = logger;
     }
 
     /// <inheritdoc cref="ICategoryService.GetAllAsync"/>
@@ -59,9 +67,13 @@ public class CategoryService : ICategoryService
     {
         var category = await _repository.GetCategoryWithProductsAsync(id, ct: ct);
 
-        return category is null
-            ? Error.NotFound(description: $"Category with {id} not found.")
-            : category.ToDto();
+        if (category is null)
+        {
+            _logger.LogWarning("Category {id} not found", id);
+            return Error.NotFound(description: $"Category with {id} not found.");
+        }
+
+        return category.ToDto();
     }
 
     /// <inheritdoc cref="ICategoryService.AddAsync"/>
@@ -72,9 +84,13 @@ public class CategoryService : ICategoryService
     {
         string slug = SlugHelper.CreateSlug(dto.Name);
         if (!await IsSlugUnique(slug, ct: ct))
-            return Error.Conflict(
-                description: $"Property {nameof(dto.Name)} has no unique slug. Try another name (Slug is created form name automatically)"
+        {
+            _logger.LogWarning(
+                "Property {propertyName} has no unique slug. Try another name.",
+                nameof(dto.Name)
             );
+            return Error.Conflict(description: $"Property {nameof(dto.Name)} has no unique slug.");
+        }
 
         var category = new Category
         {
@@ -101,15 +117,24 @@ public class CategoryService : ICategoryService
     {
         var old = await _repository.GetByIdForUpdateAsync(id, ct);
         if (old is null)
+        {
+            _logger.LogWarning("Category {id} not found", id);
             return Error.NotFound(description: $"Category with {id} not found.");
+        }
 
         if (dto.Name is not null && !dto.Name.Equals(old.Name))
         {
             var slug = SlugHelper.CreateSlug(dto.Name);
             if (!await IsSlugUnique(slug, id, ct))
-                return Error.Conflict(
-                    description: $"Property {nameof(dto.Name)} has no unique slug. Try another name."
+            {
+                _logger.LogWarning(
+                    "Property {propertyName} has no unique slug. Try another name.",
+                    nameof(dto.Name)
                 );
+                return Error.Conflict(
+                    description: $"Property {nameof(dto.Name)} has no unique slug."
+                );
+            }
 
             old.Name = dto.Name;
             old.Slug = slug;
@@ -121,10 +146,18 @@ public class CategoryService : ICategoryService
         if (dto.SortOrder is not null)
         {
             int newIndex = dto.SortOrder.Value;
-            if (newIndex < 0 || newIndex >= (await _repository.GetAllAsync(ct: ct)).Count)
-                return Error.Validation(
-                    description: $"SortOrder value is out of index range. Value cannot be greater than categories count"
+            int categoryCount = (await _repository.GetAllAsync(ct: ct)).Count;
+            if (newIndex < 0 || newIndex >= categoryCount)
+            {
+                _logger.LogWarning(
+                    "SortOrder value is out of index range. Value cannot be greater than categories count. Value: {value}, count: {count}.",
+                    newIndex,
+                    categoryCount
                 );
+                return Error.Validation(
+                    description: $"SortOrder value is out of index range. Value cannot be greater than categories count."
+                );
+            }
             await UpdateCategoryOrder(id, dto.SortOrder.Value, ct);
         }
 
@@ -139,7 +172,10 @@ public class CategoryService : ICategoryService
         var category = categories.FirstOrDefault(c => c.Id == id);
 
         if (category is null)
+        {
+            _logger.LogWarning("Category {id} not found", id);
             return Error.NotFound(description: $"Category with {id} not found.");
+        }
 
         _repository.Remove(category);
         categories.Remove(category);
