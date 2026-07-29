@@ -15,5 +15,5 @@ public interface ICategoryRepository : IModelRepository<Category>
     /// <summary>
     ///     Gets a single category by id including its products, for read-only purposes (no change tracking).
     /// </summary>
-    Task<Category?> GetCategoryWithProductsAsync(Guid id, CancellationToken ct = default);
+    Task<Category?> GetCategoryWithProductsByIdAsync(Guid id, CancellationToken ct = default);
 }

@@ -59,13 +59,13 @@ public class CategoryService : ICategoryService
             ))
             .ToList();
 
-    /// <inheritdoc cref="ICategoryService.GetAsync"/>
-    public async Task<ErrorOr<CategoryResponseDto>> GetAsync(
+    /// <inheritdoc cref="ICategoryService.GetByIdAsync"/>
+    public async Task<ErrorOr<CategoryDetailResponseDto>> GetByIdAsync(
         Guid id,
         CancellationToken ct = default
     )
     {
-        var category = await _repository.GetCategoryWithProductsAsync(id, ct: ct);
+        var category = await _repository.GetCategoryWithProductsByIdAsync(id, ct: ct);
 
         if (category is null)
         {
@@ -73,7 +73,7 @@ public class CategoryService : ICategoryService
             return Error.NotFound(description: $"Category with {id} not found.");
         }
 
-        return category.ToDto();
+        return category.ToDetailDto();
     }
 
     /// <inheritdoc cref="ICategoryService.AddAsync"/>

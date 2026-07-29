@@ -50,3 +50,5 @@ finally
     // Empty sink's buffers (Seq/file) before proccess termination
     Log.CloseAndFlush();
 }
+
+public partial class Program { }

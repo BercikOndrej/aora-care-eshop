@@ -37,10 +37,10 @@ public interface ICategoryService
     ///     Token to cancel the operation.
     /// </param>
     /// <returns>
-    ///     Returns an <see cref="ErrorOr{TValue}"/> containing the <see cref="CategoryResponseDto"/> if it exists,
+    ///     Returns an <see cref="ErrorOr{TValue}"/> containing the <see cref="CategoryDetailResponseDto"/> if it exists,
     ///     or an <see cref="Error"/> of type <see cref="ErrorType.NotFound"/> if no category with the given <paramref name="id"/> exists.
     /// </returns>
-    Task<ErrorOr<CategoryResponseDto>> GetAsync(Guid id, CancellationToken ct = default);
+    Task<ErrorOr<CategoryDetailResponseDto>> GetByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
     ///     Create new Category.

@@ -77,17 +77,20 @@ public class CategoriesController : ControllerBase
     ///     Token to cancel the operation.
     /// </param>
     /// <returns>
-    ///     Returns category for a given <paramref name="id"/> as <see cref="CategoryResponseDto"/>.
+    ///     Returns category for a given <paramref name="id"/> as <see cref="CategoryDetailResponseDto"/>.
     /// </returns>
     /// <response code="200">Returns category for the given id</response>
     /// <response code="404">If category does not exist in the database.</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CategoryResponseDto>> GetByIdAsync(
+    public async Task<ActionResult<CategoryDetailResponseDto>> GetByIdAsync(
         Guid id,
         CancellationToken ct = default
-    ) => (await _categoryService.GetAsync(id, ct)).ToActionResult<CategoryResponseDto>(this);
+    ) =>
+        (await _categoryService.GetByIdAsync(id, ct)).ToActionResult<CategoryDetailResponseDto>(
+            this
+        );
 
     /// <summary>
     ///     Create new category.

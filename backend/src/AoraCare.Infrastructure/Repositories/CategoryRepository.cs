@@ -37,7 +37,10 @@ public class CategoryRepository : ICategoryRepository
         _dbContext.Set<Category>().FirstOrDefaultAsync(c => c.Id == id, ct);
 
     /// <inheritdoc/>
-    public Task<Category?> GetCategoryWithProductsAsync(Guid id, CancellationToken ct = default) =>
+    public Task<Category?> GetCategoryWithProductsByIdAsync(
+        Guid id,
+        CancellationToken ct = default
+    ) =>
         _dbContext
             .Set<Category>()
             .Include(c => c.Products)

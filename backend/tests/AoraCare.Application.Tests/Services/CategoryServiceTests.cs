@@ -318,7 +318,7 @@ public class CategoryServiceTests
     }
 
     [Fact]
-    public async Task GetAsync_WhenCategoryExists_ReturnsMappedDto()
+    public async Task GetAsync_WhenCategoryHasNoProducts_ReturnsMappedDtoWithEmptyProducts()
     {
         var id = Guid.NewGuid();
         var category = new Category
@@ -332,21 +332,71 @@ public class CategoryServiceTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        _repoMock.Setup(r => r.GetCategoryWithProductsAsync(id)).ReturnsAsync(category);
+        _repoMock.Setup(r => r.GetCategoryWithProductsByIdAsync(id)).ReturnsAsync(category);
 
-        var result = await _sut.GetAsync(id);
+        var result = await _sut.GetByIdAsync(id);
 
         result.IsError.Should().BeFalse();
-        result.Value.Should().Be(category.ToDto());
+        result.Value.Should().BeEquivalentTo(category.ToDetailDto());
+        result.Value.Products.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAsync_WhenCategoryHasProducts_ReturnsMappedDtoWithProducts()
+    {
+        var id = Guid.NewGuid();
+        var product1 = new Product
+        {
+            Id = Guid.NewGuid(),
+            CategoryId = id,
+            Name = "Product 1",
+            Slug = "product-1",
+            Description = "description",
+            ImageUrl = "https://example.com/1.png",
+            SortOrder = 0,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        var product2 = new Product
+        {
+            Id = Guid.NewGuid(),
+            CategoryId = id,
+            Name = "Product 2",
+            Slug = "product-2",
+            Description = "description",
+            ImageUrl = "https://example.com/2.png",
+            SortOrder = 1,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        var category = new Category
+        {
+            Id = id,
+            Products = [product1, product2],
+            Name = "Name",
+            Slug = "name",
+            Description = "description",
+            SortOrder = 0,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        _repoMock.Setup(r => r.GetCategoryWithProductsByIdAsync(id)).ReturnsAsync(category);
+
+        var result = await _sut.GetByIdAsync(id);
+
+        result.IsError.Should().BeFalse();
+        result.Value.Products.Should().BeEquivalentTo([product1.ToDto(), product2.ToDto()]);
     }
 
     [Fact]
     public async Task GetAsync_WhenCategoryNotFound_ReturnsNotFoundError()
     {
         var id = Guid.NewGuid();
-        _repoMock.Setup(r => r.GetCategoryWithProductsAsync(id)).ReturnsAsync((Category?)null);
+        _repoMock.Setup(r => r.GetCategoryWithProductsByIdAsync(id)).ReturnsAsync((Category?)null);
 
-        var result = await _sut.GetAsync(id);
+        var result = await _sut.GetByIdAsync(id);
 
         result.IsError.Should().BeTrue();
         result.FirstError.Type.Should().Be(ErrorType.NotFound);
@@ -685,7 +735,9 @@ public class CategoryServiceTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        _repoMock.Setup(r => r.GetAllForUpdateAsync()).ReturnsAsync([category, category1, category2]);
+        _repoMock
+            .Setup(r => r.GetAllForUpdateAsync())
+            .ReturnsAsync([category, category1, category2]);
 
         var result = await _sut.DeleteAsync(id1);
 
