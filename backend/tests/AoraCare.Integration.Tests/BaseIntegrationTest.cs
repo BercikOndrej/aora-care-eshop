@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AoraCare.Tests.Integration;
 
-public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestFactory>, IAsyncLifetime
+public abstract class BaseIntegrationTest : IAsyncLifetime
 {
     protected readonly HttpClient client;
     private readonly IntegrationTestFactory _factory;

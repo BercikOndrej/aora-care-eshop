@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AoraCare.Tests.Integration.Category;
 
+[Collection(DatabaseCollection.Name)]
 public class CategoriesControllerTests : BaseIntegrationTest
 {
     private const string CategoryUrl = @"/categories";
