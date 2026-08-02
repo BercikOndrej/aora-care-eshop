@@ -11,6 +11,7 @@ namespace AoraCare.Tests.Integration.Category;
 public class CategoriesControllerTests : BaseIntegrationTest
 {
     private const string CategoryUrl = @"/categories";
+    private const string ProductUrl = @"/products";
     private readonly string _name = "Test Name";
     private readonly string _description = "Test Description";
     private readonly Guid _id = Guid.NewGuid();
@@ -104,7 +105,7 @@ public class CategoriesControllerTests : BaseIntegrationTest
         responseContent.Should().NotBeNull();
         responseContent.Status.Should().Be(409);
         responseContent.Title.Should().Be("Conflict");
-        responseContent.Detail.Should().Be("Property Name has no unique slug.");
+        responseContent.Detail.Should().Be("Property Name is not unique.");
     }
 
     [Fact]
@@ -128,6 +129,7 @@ public class CategoriesControllerTests : BaseIntegrationTest
         responseContent.Should().NotBeNull();
         var id = responseContent.Id;
 
+        // ! TODO: Replace with api call
         await SeedAsync(db =>
             db.Products.Add(
                 new Product
@@ -307,7 +309,7 @@ public class CategoriesControllerTests : BaseIntegrationTest
         responseContent.Should().NotBeNull();
         responseContent.Status.Should().Be(409);
         responseContent.Title.Should().Be("Conflict");
-        responseContent.Detail.Should().Be("Property Name has no unique slug.");
+        responseContent.Detail.Should().Be("Property Name is not unique.");
     }
 
     [Fact]
@@ -470,5 +472,50 @@ public class CategoriesControllerTests : BaseIntegrationTest
         remaining.Should().NotBeNull();
         remaining.Should().HaveCount(2);
         remaining.Should().NotContain(c => c.Id == toDelete.Id);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenCategoryHasProducts_RemovesProductsToo()
+    {
+        // Arrange
+        var categoryToDeleteResponse = await client.PostAsJsonAsync(
+            CategoryUrl,
+            new CategoryAddDto(_name, _description, true)
+        );
+        var categoryToDelete =
+            await categoryToDeleteResponse.Content.ReadFromJsonAsync<CategoryResponseDto>();
+
+        var otherCategoryResponse = await client.PostAsJsonAsync(
+            CategoryUrl,
+            new CategoryAddDto(_name + "-other", _description, true)
+        );
+        var otherCategory =
+            await otherCategoryResponse.Content.ReadFromJsonAsync<CategoryResponseDto>();
+
+        var productToDeleteResponse = await client.PostAsJsonAsync(
+            ProductUrl,
+            new ProductAddDto(categoryToDelete!.Id, "Product To Delete", "description", null)
+        );
+        var productToDelete =
+            await productToDeleteResponse.Content.ReadFromJsonAsync<ProductResponseDto>();
+
+        var productToKeepResponse = await client.PostAsJsonAsync(
+            ProductUrl,
+            new ProductAddDto(otherCategory!.Id, "Product To Keep", "description", null)
+        );
+        var productToKeep =
+            await productToKeepResponse.Content.ReadFromJsonAsync<ProductResponseDto>();
+
+        // Act
+        var deleteResponse = await client.DeleteAsync($"{CategoryUrl}/{categoryToDelete.Id}");
+
+        // Assert
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var deletedProductResponse = await client.GetAsync($"{ProductUrl}/{productToDelete!.Id}");
+        deletedProductResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var keptProductResponse = await client.GetAsync($"{ProductUrl}/{productToKeep!.Id}");
+        keptProductResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }
