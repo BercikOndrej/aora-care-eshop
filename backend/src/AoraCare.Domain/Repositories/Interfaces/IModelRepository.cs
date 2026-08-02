@@ -2,10 +2,11 @@ namespace AoraCare.Domain.Repositories.Interfaces;
 
 /// <summary>
 ///     Generic data access abstraction for <typeparamref name="TEntity"/>.
-///     Read methods are split by caller intent instead of an EF-specific tracking flag:
-///     plain overloads return read-only (no change-tracking) results for querying/projection,
-///     while "ForUpdate" overloads return change-tracked entities for callers that intend
-///     to mutate them and persist the changes via <see cref="IUnitOfWork"/>.
+///     <see cref="GetByIdAsync"/> always returns a change-tracked entity, since callers
+///     fetching a single entity by id typically intend to mutate and persist it via
+///     <see cref="IUnitOfWork"/>. <see cref="GetAllAsync"/> and <see cref="GetAllForUpdateAsync"/>
+///     remain split by caller intent: the plain overload is read-only (no change-tracking) for
+///     querying/projection, while the "ForUpdate" overload is change-tracked for mutation.
 /// </summary>
 /// <typeparam name="TEntity">
 ///     The entity type this repository manages.
@@ -24,7 +25,7 @@ public interface IModelRepository<TEntity>
     Task<IReadOnlyList<TEntity>> GetAllForUpdateAsync(CancellationToken ct = default);
 
     /// <summary>
-    ///     Gets a single entity by id for read-only purposes (no change tracking).
+    ///     Gets a single entity by id, with change tracking enabled.
     /// </summary>
     /// <param name="id">
     ///     The identifier of the entity to get.
@@ -36,20 +37,6 @@ public interface IModelRepository<TEntity>
     ///     The entity, or <see langword="null"/> if no entity with the given id exists.
     /// </returns>
     Task<TEntity?> GetByIdAsync(Guid id, CancellationToken ct = default);
-
-    /// <summary>
-    ///     Gets a single entity by id with change tracking enabled, for callers that intend to mutate it.
-    /// </summary>
-    /// <param name="id">
-    ///     The identifier of the entity to get.
-    /// </param>
-    /// <param name="ct">
-    ///     Token to cancel the operation.
-    /// </param>
-    /// <returns>
-    ///     The entity, or <see langword="null"/> if no entity with the given id exists.
-    /// </returns>
-    Task<TEntity?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
     ///     Marks an entity to be inserted on the next <see cref="IUnitOfWork.SaveChangesAsync"/>.

@@ -11,18 +11,21 @@ namespace AoraCare.Application.Services;
 
 public class CategoryService : ICategoryService
 {
-    private readonly ICategoryRepository _repository;
+    private readonly ICategoryRepository _categoryRepository;
+    private readonly IProductRepository _productRepository;
     private readonly IUnitOfWork _uow;
 
     private readonly ILogger<CategoryService> _logger;
 
     public CategoryService(
-        ICategoryRepository repository,
+        ICategoryRepository categoryRepository,
+        IProductRepository productRepository,
         IUnitOfWork unitOfWork,
         ILogger<CategoryService> logger
     )
     {
-        _repository = repository;
+        _productRepository = productRepository;
+        _categoryRepository = categoryRepository;
         _uow = unitOfWork;
         _logger = logger;
     }
@@ -32,7 +35,7 @@ public class CategoryService : ICategoryService
     ///     For admin use — includes inactive categories.
     /// </remarks>
     public async Task<List<CategoryResponseDto>> GetAllAsync(CancellationToken ct = default) =>
-        (await _repository.GetAllAsync(ct: ct))
+        (await _categoryRepository.GetAllAsync(ct: ct))
             .Select(c => new CategoryResponseDto(
                 c.Id,
                 c.Name,
@@ -47,7 +50,7 @@ public class CategoryService : ICategoryService
     public async Task<List<CategoryResponseDto>> GetAllActiveAsync(
         CancellationToken ct = default
     ) =>
-        (await _repository.GetAllAsync(ct: ct))
+        (await _categoryRepository.GetAllAsync(ct: ct))
             .Where(c => c.IsActive)
             .Select(c => new CategoryResponseDto(
                 c.Id,
@@ -65,7 +68,7 @@ public class CategoryService : ICategoryService
         CancellationToken ct = default
     )
     {
-        var category = await _repository.GetCategoryWithProductsByIdAsync(id, ct: ct);
+        var category = await _categoryRepository.GetCategoryWithProductsByIdAsync(id, ct: ct);
 
         if (category is null)
         {
@@ -86,10 +89,10 @@ public class CategoryService : ICategoryService
         if (!await IsSlugUnique(slug, ct: ct))
         {
             _logger.LogWarning(
-                "Property {propertyName} has no unique slug. Try another name.",
+                "Property {name} is not unique. Try another name.",
                 nameof(dto.Name)
             );
-            return Error.Conflict(description: $"Property {nameof(dto.Name)} has no unique slug.");
+            return Error.Conflict(description: $"Property {nameof(dto.Name)} is not unique.");
         }
 
         var category = new Category
@@ -103,7 +106,7 @@ public class CategoryService : ICategoryService
             IsActive = dto.IsActive ?? true,
             CreatedAt = DateTime.UtcNow,
         };
-        _repository.Add(category);
+        _categoryRepository.Add(category);
         await _uow.SaveChangesAsync(ct);
         return category.ToDto();
     }
@@ -115,7 +118,7 @@ public class CategoryService : ICategoryService
         CancellationToken ct = default
     )
     {
-        var old = await _repository.GetByIdForUpdateAsync(id, ct);
+        var old = await _categoryRepository.GetByIdAsync(id, ct);
         if (old is null)
         {
             _logger.LogWarning("Category {id} not found", id);
@@ -128,12 +131,10 @@ public class CategoryService : ICategoryService
             if (!await IsSlugUnique(slug, id, ct))
             {
                 _logger.LogWarning(
-                    "Property {propertyName} has no unique slug. Try another name.",
+                    "Property {name} is not unique. Try another name.",
                     nameof(dto.Name)
                 );
-                return Error.Conflict(
-                    description: $"Property {nameof(dto.Name)} has no unique slug."
-                );
+                return Error.Conflict(description: $"Property {nameof(dto.Name)} is not unique.");
             }
 
             old.Name = dto.Name;
@@ -146,19 +147,19 @@ public class CategoryService : ICategoryService
         if (dto.SortOrder is not null)
         {
             int newIndex = dto.SortOrder.Value;
-            int categoryCount = (await _repository.GetAllAsync(ct: ct)).Count;
-            if (newIndex < 0 || newIndex >= categoryCount)
+            int categoryCount = await _categoryRepository.CountAsync(ct);
+            if (newIndex >= categoryCount)
             {
                 _logger.LogWarning(
-                    "SortOrder value is out of index range. Value cannot be greater than categories count. Value: {value}, count: {count}.",
+                    "SortOrder value is out of index range. Value cannot be greater than number of categories. Value: {value}, count: {count}.",
                     newIndex,
                     categoryCount
                 );
                 return Error.Validation(
-                    description: $"SortOrder value is out of index range. Value cannot be greater than categories count."
+                    description: $"SortOrder value is out of index range. Value cannot be greater than number of categories."
                 );
             }
-            await UpdateCategoryOrder(id, dto.SortOrder.Value, ct);
+            await UpdateCategoryOrder(id, newIndex, ct);
         }
 
         await _uow.SaveChangesAsync(ct);
@@ -177,7 +178,20 @@ public class CategoryService : ICategoryService
             return Error.NotFound(description: $"Category with {id} not found.");
         }
 
-        _repository.Remove(category);
+        var categoryProducts = (await _productRepository.GetAllForUpdateAsync(ct)).Where(p =>
+            p.CategoryId == id
+        );
+        foreach (var product in categoryProducts)
+        {
+            _logger.LogInformation(
+                "Product {id} named {name} was deleted",
+                product.Id,
+                product.Name
+            );
+            _productRepository.Remove(product);
+        }
+
+        _categoryRepository.Remove(category);
         categories.Remove(category);
         ReorderAllCategories(categories);
 
@@ -189,7 +203,8 @@ public class CategoryService : ICategoryService
     #region private methods
 
     /// <summary>
-    ///     Get next valid value for correct sorting property.
+    ///     Get next valid value for correct sorting property. Since <see cref="Category.SortOrder"/>
+    ///     is a contiguous 0-based sequence, the category count is also the next valid position.
     /// </summary>
     /// <param name="ct">
     ///     Token to cancel the operation.
@@ -197,10 +212,8 @@ public class CategoryService : ICategoryService
     /// <returns>
     ///     Value that represent postition.
     /// </returns>
-    private async Task<int> GetNextOrder(CancellationToken ct = default) =>
-        (await _repository.GetAllAsync(ct: ct)).Max(c => (int?)c.SortOrder) is int max
-            ? max + 1
-            : 0;
+    private Task<int> GetNextOrder(CancellationToken ct = default) =>
+        _categoryRepository.CountAsync(ct);
 
     /// <summary>
     ///     Helper method to get all ordered categories.
@@ -213,7 +226,7 @@ public class CategoryService : ICategoryService
     ///     List of ordered categories by property SortOrder
     /// </returns>
     private async Task<List<Category>> GetOrderedCategoriesAsync(CancellationToken ct = default) =>
-        (await _repository.GetAllForUpdateAsync(ct)).OrderBy(c => c.SortOrder).ToList();
+        (await _categoryRepository.GetAllForUpdateAsync(ct)).OrderBy(c => c.SortOrder).ToList();
 
     /// <summary>
     ///     Reorder all categories based on order in given list.
@@ -266,7 +279,7 @@ public class CategoryService : ICategoryService
         string slug,
         Guid? id = null,
         CancellationToken ct = default
-    ) => !(await _repository.GetAllAsync(ct: ct)).Any(c => c.Slug == slug && c.Id != id);
+    ) => !await _categoryRepository.SlugExistsAsync(slug, id, ct);
 
     #endregion
 }

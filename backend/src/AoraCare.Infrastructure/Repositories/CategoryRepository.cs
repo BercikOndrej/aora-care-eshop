@@ -30,10 +30,6 @@ public class CategoryRepository : ICategoryRepository
 
     /// <inheritdoc/>
     public Task<Category?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
-        _dbContext.Set<Category>().AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
-
-    /// <inheritdoc/>
-    public Task<Category?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default) =>
         _dbContext.Set<Category>().FirstOrDefaultAsync(c => c.Id == id, ct);
 
     /// <inheritdoc/>
@@ -52,4 +48,15 @@ public class CategoryRepository : ICategoryRepository
 
     /// <inheritdoc/>
     public void Remove(Category category) => _dbContext.Set<Category>().Remove(category);
+
+    /// <inheritdoc/>
+    public Task<bool> SlugExistsAsync(
+        string slug,
+        Guid? excludeId = null,
+        CancellationToken ct = default
+    ) => _dbContext.Set<Category>().AnyAsync(c => c.Slug == slug && c.Id != excludeId, ct);
+
+    /// <inheritdoc/>
+    public Task<int> CountAsync(CancellationToken ct = default) =>
+        _dbContext.Set<Category>().CountAsync(ct);
 }

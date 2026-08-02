@@ -98,5 +98,8 @@ public interface ICategoryService
     ///     Returns an <see cref="ErrorOr{TValue}"/> of <see cref="Deleted"/> if the category was deleted,
     ///     or an <see cref="Error"/> of type <see cref="ErrorType.NotFound"/> if no category with the given <paramref name="id"/> exists.
     /// </returns>
+    /// <remarks>
+    ///     Deleting a category also hard-deletes all products assigned to it.
+    /// </remarks>
     Task<ErrorOr<Deleted>> DeleteAsync(Guid id, CancellationToken ct = default);
 }

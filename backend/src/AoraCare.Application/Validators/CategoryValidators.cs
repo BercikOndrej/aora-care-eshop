@@ -24,7 +24,6 @@ public class CategoryAddDtoValidator : AbstractValidator<CategoryAddDto>
             .WithMessage("Description may have max 1024 characters.")
             .Matches(@"\w")
             .WithMessage("Description must include some word characters");
-        ;
     }
 }
 

@@ -13,14 +13,20 @@ namespace AoraCare.Application.Services.Tests;
 [Trait("Category", "Unit")]
 public class CategoryServiceTests
 {
-    private readonly Mock<ICategoryRepository> _repoMock = new();
+    private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
+    private readonly Mock<IProductRepository> _productRepoMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly Mock<ILogger<CategoryService>> _loggerMock = new();
     private readonly CategoryService _sut;
 
     public CategoryServiceTests()
     {
-        _sut = new CategoryService(_repoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object);
+        _sut = new CategoryService(
+            _categoryRepoMock.Object,
+            _productRepoMock.Object,
+            _unitOfWorkMock.Object,
+            _loggerMock.Object
+        );
     }
 
     [Fact]
@@ -72,7 +78,7 @@ public class CategoryServiceTests
                 CreatedAt = DateTime.UtcNow,
             },
         ];
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(dbCategories);
+        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(dbCategories);
 
         var result = await _sut.GetAllAsync();
 
@@ -83,7 +89,7 @@ public class CategoryServiceTests
     [Fact]
     public async Task GetAllAsync_WhenNoCategoriesExist_ReturnsEmptyList()
     {
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
 
         var result = await _sut.GetAllAsync();
 
@@ -93,7 +99,7 @@ public class CategoryServiceTests
     [Fact]
     public async Task GetAllAsync_WhenRepositoryThrows_PropagatesException()
     {
-        _repoMock
+        _categoryRepoMock
             .Setup(r => r.GetAllAsync())
             .ThrowsAsync(new InvalidOperationException("DB unavailable"));
 
@@ -149,7 +155,7 @@ public class CategoryServiceTests
                 CreatedAt = DateTime.UtcNow,
             },
         ];
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(dbCategories);
+        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(dbCategories);
 
         var result = await _sut.GetAllActiveAsync();
 
@@ -200,7 +206,7 @@ public class CategoryServiceTests
                 CreatedAt = DateTime.UtcNow,
             },
         ];
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(dbCategories);
+        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(dbCategories);
 
         var result = await _sut.GetAllActiveAsync();
 
@@ -216,14 +222,23 @@ public class CategoryServiceTests
         CategoryAddDto addDto = new(name, description, false);
 
         Category? captured = null;
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
-        _repoMock.Setup(r => r.Add(It.IsAny<Category>())).Callback<Category>(c => captured = c);
+        _categoryRepoMock
+            .Setup(r => r.SlugExistsAsync(It.IsAny<string>(), It.IsAny<Guid?>(), default))
+            .ReturnsAsync(false);
+        _categoryRepoMock.Setup(r => r.CountAsync(default)).ReturnsAsync(0);
+        _categoryRepoMock
+            .Setup(r => r.Add(It.IsAny<Category>()))
+            .Callback<Category>(c => captured = c);
 
         var result = await _sut.AddAsync(addDto);
 
         result.IsError.Should().BeFalse();
-        _repoMock.Verify(r => r.Add(It.IsAny<Category>()), Times.Once);
-        _repoMock.Verify(r => r.GetAllAsync(), Times.AtLeastOnce);
+        _categoryRepoMock.Verify(r => r.Add(It.IsAny<Category>()), Times.Once);
+        _categoryRepoMock.Verify(
+            r => r.SlugExistsAsync(It.IsAny<string>(), It.IsAny<Guid?>(), default),
+            Times.AtLeastOnce
+        );
+        _categoryRepoMock.Verify(r => r.CountAsync(default), Times.AtLeastOnce);
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
 
         captured.Should().NotBeNull();
@@ -232,44 +247,24 @@ public class CategoryServiceTests
     }
 
     [Fact]
-    public async Task AddAsync_WhenCategoriesExist_SortOrderIsMaxPlusOne()
+    public async Task AddAsync_WhenCategoriesExist_SortOrderIsCategoryCount()
     {
-        List<Category> existing =
-        [
-            new Category
-            {
-                Id = Guid.NewGuid(),
-                Products = [],
-                Name = "A",
-                Slug = "a",
-                Description = "description",
-                SortOrder = 0,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-            },
-            new Category
-            {
-                Id = Guid.NewGuid(),
-                Products = [],
-                Name = "B",
-                Slug = "b",
-                Description = "description",
-                SortOrder = 3,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-            },
-        ];
         CategoryAddDto addDto = new("Test", "Test description", true);
 
         Category? captured = null;
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(existing);
-        _repoMock.Setup(r => r.Add(It.IsAny<Category>())).Callback<Category>(c => captured = c);
+        _categoryRepoMock
+            .Setup(r => r.SlugExistsAsync(It.IsAny<string>(), It.IsAny<Guid?>(), default))
+            .ReturnsAsync(false);
+        _categoryRepoMock.Setup(r => r.CountAsync(default)).ReturnsAsync(2);
+        _categoryRepoMock
+            .Setup(r => r.Add(It.IsAny<Category>()))
+            .Callback<Category>(c => captured = c);
 
         var result = await _sut.AddAsync(addDto);
 
         result.IsError.Should().BeFalse();
         captured.Should().NotBeNull();
-        captured!.SortOrder.Should().Be(4);
+        captured!.SortOrder.Should().Be(2);
     }
 
     [Fact]
@@ -278,8 +273,13 @@ public class CategoryServiceTests
         CategoryAddDto addDto = new("Test", "Test description", null);
 
         Category? captured = null;
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
-        _repoMock.Setup(r => r.Add(It.IsAny<Category>())).Callback<Category>(c => captured = c);
+        _categoryRepoMock
+            .Setup(r => r.SlugExistsAsync(It.IsAny<string>(), It.IsAny<Guid?>(), default))
+            .ReturnsAsync(false);
+        _categoryRepoMock.Setup(r => r.CountAsync(default)).ReturnsAsync(0);
+        _categoryRepoMock
+            .Setup(r => r.Add(It.IsAny<Category>()))
+            .Callback<Category>(c => captured = c);
 
         var result = await _sut.AddAsync(addDto);
 
@@ -291,29 +291,17 @@ public class CategoryServiceTests
     [Fact]
     public async Task AddAsync_WhenSlugAlreadyExists_ReturnsConflictAndDoesNotPersist()
     {
-        List<Category> existing =
-        [
-            new Category
-            {
-                Id = Guid.NewGuid(),
-                Products = [],
-                Name = "Test",
-                Slug = "test",
-                Description = "description",
-                SortOrder = 0,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-            },
-        ];
         CategoryAddDto addDto = new("Test", "Test description", true);
 
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(existing);
+        _categoryRepoMock
+            .Setup(r => r.SlugExistsAsync("test", It.IsAny<Guid?>(), default))
+            .ReturnsAsync(true);
 
         var result = await _sut.AddAsync(addDto);
 
         result.IsError.Should().BeTrue();
         result.FirstError.Type.Should().Be(ErrorType.Conflict);
-        _repoMock.Verify(r => r.Add(It.IsAny<Category>()), Times.Never);
+        _categoryRepoMock.Verify(r => r.Add(It.IsAny<Category>()), Times.Never);
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
@@ -332,7 +320,7 @@ public class CategoryServiceTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        _repoMock.Setup(r => r.GetCategoryWithProductsByIdAsync(id)).ReturnsAsync(category);
+        _categoryRepoMock.Setup(r => r.GetCategoryWithProductsByIdAsync(id)).ReturnsAsync(category);
 
         var result = await _sut.GetByIdAsync(id);
 
@@ -382,7 +370,7 @@ public class CategoryServiceTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        _repoMock.Setup(r => r.GetCategoryWithProductsByIdAsync(id)).ReturnsAsync(category);
+        _categoryRepoMock.Setup(r => r.GetCategoryWithProductsByIdAsync(id)).ReturnsAsync(category);
 
         var result = await _sut.GetByIdAsync(id);
 
@@ -394,7 +382,9 @@ public class CategoryServiceTests
     public async Task GetAsync_WhenCategoryNotFound_ReturnsNotFoundError()
     {
         var id = Guid.NewGuid();
-        _repoMock.Setup(r => r.GetCategoryWithProductsByIdAsync(id)).ReturnsAsync((Category?)null);
+        _categoryRepoMock
+            .Setup(r => r.GetCategoryWithProductsByIdAsync(id))
+            .ReturnsAsync((Category?)null);
 
         var result = await _sut.GetByIdAsync(id);
 
@@ -406,7 +396,7 @@ public class CategoryServiceTests
     public async Task UpdateAsync_WhenCategoryNotFound_ReturnsNotFoundError()
     {
         var id = Guid.NewGuid();
-        _repoMock.Setup(r => r.GetByIdForUpdateAsync(id)).ReturnsAsync((Category?)null);
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Category?)null);
         CategoryUpdateDto updateDto = new(null, null, null, null);
 
         var result = await _sut.UpdateAsync(id, updateDto);
@@ -431,8 +421,10 @@ public class CategoryServiceTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        _repoMock.Setup(r => r.GetByIdForUpdateAsync(id)).ReturnsAsync(category);
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync([category]);
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(category);
+        _categoryRepoMock
+            .Setup(r => r.SlugExistsAsync("new-name", id, default))
+            .ReturnsAsync(false);
         CategoryUpdateDto updateDto = new("New Name", null, null, null);
 
         var result = await _sut.UpdateAsync(id, updateDto);
@@ -458,19 +450,8 @@ public class CategoryServiceTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        var other = new Category
-        {
-            Id = Guid.NewGuid(),
-            Products = [],
-            Name = "New Name",
-            Slug = "new-name",
-            Description = "description",
-            SortOrder = 1,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-        };
-        _repoMock.Setup(r => r.GetByIdForUpdateAsync(id)).ReturnsAsync(category);
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync([category, other]);
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(category);
+        _categoryRepoMock.Setup(r => r.SlugExistsAsync("new-name", id, default)).ReturnsAsync(true);
         CategoryUpdateDto updateDto = new("New Name", null, null, null);
 
         var result = await _sut.UpdateAsync(id, updateDto);
@@ -522,9 +503,9 @@ public class CategoryServiceTests
         };
         List<Category> all = [category, category1, category2];
 
-        _repoMock.Setup(r => r.GetByIdForUpdateAsync(id)).ReturnsAsync(category);
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(all);
-        _repoMock.Setup(r => r.GetAllForUpdateAsync()).ReturnsAsync(all);
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(category);
+        _categoryRepoMock.Setup(r => r.CountAsync(default)).ReturnsAsync(all.Count);
+        _categoryRepoMock.Setup(r => r.GetAllForUpdateAsync()).ReturnsAsync(all);
         CategoryUpdateDto updateDto = new(null, null, 2, null);
 
         var result = await _sut.UpdateAsync(id, updateDto);
@@ -551,8 +532,8 @@ public class CategoryServiceTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        _repoMock.Setup(r => r.GetByIdForUpdateAsync(id)).ReturnsAsync(category);
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync([category]);
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(category);
+        _categoryRepoMock.Setup(r => r.CountAsync(default)).ReturnsAsync(1);
         CategoryUpdateDto updateDto = new(null, null, 5, null);
 
         var result = await _sut.UpdateAsync(id, updateDto);
@@ -603,9 +584,9 @@ public class CategoryServiceTests
         };
         List<Category> all = [category1, category2, category];
 
-        _repoMock.Setup(r => r.GetByIdForUpdateAsync(id)).ReturnsAsync(category);
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(all);
-        _repoMock.Setup(r => r.GetAllForUpdateAsync()).ReturnsAsync(all);
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(category);
+        _categoryRepoMock.Setup(r => r.CountAsync(default)).ReturnsAsync(all.Count);
+        _categoryRepoMock.Setup(r => r.GetAllForUpdateAsync()).ReturnsAsync(all);
         CategoryUpdateDto updateDto = new(null, null, 0, null);
 
         var result = await _sut.UpdateAsync(id, updateDto);
@@ -632,19 +613,8 @@ public class CategoryServiceTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        var other = new Category
-        {
-            Id = Guid.NewGuid(),
-            Products = [],
-            Name = "B",
-            Slug = "b",
-            Description = "description",
-            SortOrder = 1,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-        };
-        _repoMock.Setup(r => r.GetByIdForUpdateAsync(id)).ReturnsAsync(category);
-        _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync([category, other]);
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(category);
+        _categoryRepoMock.Setup(r => r.CountAsync(default)).ReturnsAsync(2);
         CategoryUpdateDto updateDto = new(null, null, 2, null);
 
         var result = await _sut.UpdateAsync(id, updateDto);
@@ -669,7 +639,7 @@ public class CategoryServiceTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        _repoMock.Setup(r => r.GetByIdForUpdateAsync(id)).ReturnsAsync(category);
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(category);
         CategoryUpdateDto updateDto = new(null, null, null, null);
 
         var result = await _sut.UpdateAsync(id, updateDto);
@@ -686,13 +656,13 @@ public class CategoryServiceTests
     public async Task DeleteAsync_WhenCategoryNotFound_ReturnsNotFoundError()
     {
         var id = Guid.NewGuid();
-        _repoMock.Setup(r => r.GetAllForUpdateAsync()).ReturnsAsync([]);
+        _categoryRepoMock.Setup(r => r.GetAllForUpdateAsync()).ReturnsAsync([]);
 
         var result = await _sut.DeleteAsync(id);
 
         result.IsError.Should().BeTrue();
         result.FirstError.Type.Should().Be(ErrorType.NotFound);
-        _repoMock.Verify(r => r.Remove(It.IsAny<Category>()), Times.Never);
+        _categoryRepoMock.Verify(r => r.Remove(It.IsAny<Category>()), Times.Never);
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
@@ -735,16 +705,73 @@ public class CategoryServiceTests
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
         };
-        _repoMock
+        _categoryRepoMock
             .Setup(r => r.GetAllForUpdateAsync())
             .ReturnsAsync([category, category1, category2]);
+        _productRepoMock.Setup(r => r.GetAllForUpdateAsync()).ReturnsAsync([]);
 
         var result = await _sut.DeleteAsync(id1);
 
         result.IsError.Should().BeFalse();
-        _repoMock.Verify(r => r.Remove(category1), Times.Once);
+        _categoryRepoMock.Verify(r => r.Remove(category1), Times.Once);
         category.SortOrder.Should().Be(0);
         category2.SortOrder.Should().Be(1);
+        _unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenCategoryHasProducts_RemovesProductsToo()
+    {
+        var id = Guid.NewGuid();
+        var otherId = Guid.NewGuid();
+        var category = new Category
+        {
+            Id = id,
+            Products = [],
+            Name = "A",
+            Slug = "a",
+            Description = "description",
+            SortOrder = 0,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        var productInDeletedCategory = new Product
+        {
+            Id = Guid.NewGuid(),
+            CategoryId = id,
+            Name = "Product 1",
+            Slug = "product-1",
+            Description = "description",
+            ImageUrl = "https://example.com/1.png",
+            SortOrder = 0,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        var productInOtherCategory = new Product
+        {
+            Id = Guid.NewGuid(),
+            CategoryId = otherId,
+            Name = "Product 2",
+            Slug = "product-2",
+            Description = "description",
+            ImageUrl = "https://example.com/2.png",
+            SortOrder = 0,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        _categoryRepoMock.Setup(r => r.GetAllForUpdateAsync()).ReturnsAsync([category]);
+        _productRepoMock
+            .Setup(r => r.GetAllForUpdateAsync())
+            .ReturnsAsync([productInDeletedCategory, productInOtherCategory]);
+
+        var result = await _sut.DeleteAsync(id);
+
+        result.IsError.Should().BeFalse();
+        _productRepoMock.Verify(r => r.Remove(productInDeletedCategory), Times.Once);
+        _productRepoMock.Verify(r => r.Remove(productInOtherCategory), Times.Never);
+        _categoryRepoMock.Verify(r => r.Remove(category), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 }
