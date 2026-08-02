@@ -17,15 +17,4 @@ public abstract class BaseIntegrationTest : IAsyncLifetime
     public Task InitializeAsync() => _factory.ResetDatabase();
 
     public Task DisposeAsync() => Task.CompletedTask;
-
-    /// <summary>
-    ///     Seeds data directly via <see cref="AppDbContext"/>, for entities that have no API to create them through yet.
-    /// </summary>
-    protected async Task SeedAsync(Action<AppDbContext> seed)
-    {
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        seed(db);
-        await db.SaveChangesAsync();
-    }
 }
