@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using AoraCare.Application.Dtos;
-using AoraCare.Domain.Models;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -129,24 +128,12 @@ public class CategoriesControllerTests : BaseIntegrationTest
         responseContent.Should().NotBeNull();
         var id = responseContent.Id;
 
-        // ! TODO: Replace with api call
-        await SeedAsync(db =>
-            db.Products.Add(
-                new Product
-                {
-                    Id = _id,
-                    CategoryId = id,
-                    Name = "Test Product",
-                    Slug = "test-product",
-                    Description = "Test product description",
-                    ImageUrl = "https://example.com/test-product.png",
-                    SortOrder = 0,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                }
-            )
+        var productResponse = await client.PostAsJsonAsync(
+            ProductUrl,
+            new ProductAddDto(id, "Test Product", "Test product description", null)
         );
+        var product = await productResponse.Content.ReadFromJsonAsync<ProductResponseDto>();
+        product.Should().NotBeNull();
 
         // Act
         var getResponse = await client.GetAsync($"{CategoryUrl}/{id}");
@@ -158,7 +145,7 @@ public class CategoriesControllerTests : BaseIntegrationTest
         getResponseContent.Should().NotBeNull();
         getResponseContent.Id.Should().Be(id);
         getResponseContent.Products.Should().ContainSingle();
-        getResponseContent.Products[0].Id.Should().Be(_id);
+        getResponseContent.Products[0].Id.Should().Be(product.Id);
         getResponseContent.Products[0].Name.Should().Be("Test Product");
         getResponseContent.Products[0].Slug.Should().Be("test-product");
     }
