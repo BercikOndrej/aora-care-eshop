@@ -1,6 +1,7 @@
 using AoraCare.Domain;
 using AoraCare.Domain.Repositories.Interfaces;
 using AoraCare.Infrastructure.Data;
+using AoraCare.Infrastructure.Data.Seed;
 using AoraCare.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +23,7 @@ public static class DependencyInjection
 
         // Repositories
         services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;

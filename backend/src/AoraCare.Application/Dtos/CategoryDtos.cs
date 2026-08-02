@@ -19,7 +19,7 @@ public sealed record CategoryDetailResponseDto(
     string Description,
     int SortOrder,
     bool IsActive,
-    IReadOnlyList<ProductDto> Products
+    IReadOnlyList<ProductResponseDto> Products
 );
 
 public sealed record CategoryAddDto(string Name, string Description, bool? IsActive);

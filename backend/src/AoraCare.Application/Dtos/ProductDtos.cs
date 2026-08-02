@@ -3,29 +3,38 @@ using AoraCare.Domain.Models;
 
 namespace AoraCare.Application.Dtos;
 
-public sealed record CreateProductDto(
-    Guid? CategoryId,
+public sealed record ProductAddDto(
+    Guid CategoryId,
     string Name,
-    string Slug,
     string Description,
-    string ImageUrl
+    string? ImageUrl
 );
 
-public sealed record ProductDto(
+public sealed record ProductResponseDto(
     Guid Id,
-    Guid? CategoryId,
+    Guid CategoryId,
     string Name,
     string Slug,
     string Description,
-    string ImageUrl,
+    // ! TODO: upload images
+    string? ImageUrl,
     bool IsActive,
     int SortOrder,
     DateTime CreatedAt
 );
 
+public sealed record ProductUpdateDto(
+    string? Name,
+    Guid? CategoryId,
+    string? Description,
+    string? ImageUrl,
+    int? SortOrder,
+    bool? IsActive
+);
+
 public static class ProductMappingExtensions
 {
-    public static ProductDto ToDto(this Product product) =>
+    public static ProductResponseDto ToDto(this Product product) =>
         new(
             product.Id,
             product.CategoryId,
